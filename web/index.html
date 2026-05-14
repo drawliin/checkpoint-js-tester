@@ -8,62 +8,107 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="hero">
-        <p class="eyebrow">Checkpoint Runner</p>
-        <h1>Write JavaScript, run official tests, inspect output.</h1>
-        <p class="hero-copy">
-          The browser UI uses the same local harness as the terminal version.
-          JavaScript is active now, and the structure is ready for more
-          languages later.
-        </p>
-      </section>
+      <header class="topbar">
+        <div class="topbar-copy">
+          <p class="eyebrow">Checkpoint Workspace</p>
+          <h1>Exercises, editor, tests.</h1>
+          <p class="topbar-subtitle">
+            Pick an exercise, write your solution, run the local harness, and
+            reopen accepted submissions when you need them.
+          </p>
+        </div>
+      </header>
 
       <section class="workspace">
-        <div class="panel controls">
-          <div class="field">
-            <label for="language">Language</label>
-            <select id="language" disabled></select>
+        <aside class="sidebar panel">
+          <div class="sidebar-section sidebar-heading">
+            <p class="panel-title">Modules</p>
+            <p class="panel-subtitle">Filter exercises by language track</p>
           </div>
-          <div class="field">
-            <label for="exercise">Exercise</label>
-            <select id="exercise"></select>
-          </div>
-          <div class="actions">
-            <button id="reset" type="button" class="secondary">Reset</button>
-            <button id="run" type="button" class="primary">Test</button>
-          </div>
-        </div>
 
-        <div class="editor-output-grid">
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <p class="panel-title">Editor</p>
-                <p id="file-label" class="panel-subtitle">solution.js</p>
-              </div>
-              <span class="badge">JavaScript</span>
+          <div id="language-filters" class="language-filters"></div>
+
+          <div class="sidebar-section">
+            <label for="exercise-search" class="field-label">Search</label>
+            <input
+              id="exercise-search"
+              class="text-input"
+              type="search"
+              placeholder="Find an exercise"
+            />
+          </div>
+
+          <div class="sidebar-section list-section">
+            <div class="section-row">
+              <p class="panel-title">Exercises</p>
+              <span id="exercise-count" class="count-pill">0</span>
             </div>
-            <div class="editor-frame">
-              <div id="line-numbers" class="line-numbers" aria-hidden="true"></div>
-              <textarea
-                id="editor"
-                spellcheck="false"
-                aria-label="Code editor"
-              ></textarea>
+            <div id="exercise-list" class="exercise-list"></div>
+          </div>
+        </aside>
+
+        <section class="main-column">
+          <section class="panel problem-bar">
+            <div>
+              <p id="problem-language" class="eyebrow">JavaScript</p>
+              <h2 id="problem-title">Select an exercise</h2>
+              <p id="problem-meta" class="panel-subtitle">
+                Choose an exercise from the left panel.
+              </p>
+            </div>
+            <div class="problem-actions">
+              <button id="reset" type="button" class="secondary">Reset</button>
+              <button id="run" type="button" class="primary">Test</button>
             </div>
           </section>
 
-          <section class="panel">
+          <section class="workbench-grid">
+            <article class="panel editor-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="panel-title">Editor</p>
+                  <p id="file-label" class="panel-subtitle">solution.js</p>
+                </div>
+                <span id="editor-badge" class="badge">JavaScript</span>
+              </div>
+              <div class="editor-frame">
+                <div id="line-numbers" class="line-numbers" aria-hidden="true"></div>
+                <textarea
+                  id="editor"
+                  spellcheck="false"
+                  aria-label="Code editor"
+                ></textarea>
+              </div>
+            </article>
+
+            <article class="panel output-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="panel-title">Testing</p>
+                  <p id="result-status" class="panel-subtitle">
+                    Waiting for a test run
+                  </p>
+                </div>
+                <span id="result-badge" class="badge neutral">Idle</span>
+              </div>
+              <pre id="output" class="output">Select an exercise, edit the code, then click Test.</pre>
+            </article>
+          </section>
+
+          <section class="history-panel panel">
             <div class="panel-header">
               <div>
-                <p class="panel-title">Output</p>
-                <p id="result-status" class="panel-subtitle">Waiting for a test run</p>
+                <p class="panel-title">Past Submissions</p>
+                <p class="panel-subtitle">
+                  Accepted runs saved in this browser. Click one to load it
+                  back into the editor.
+                </p>
               </div>
-              <span id="result-badge" class="badge neutral">Idle</span>
+              <span id="submission-count" class="count-pill">0</span>
             </div>
-            <pre id="output" class="output">Select an exercise, edit the code, then click Test.</pre>
+            <div id="submission-list" class="submission-list submission-grid"></div>
           </section>
-        </div>
+        </section>
       </section>
     </main>
 
