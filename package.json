@@ -1,0 +1,7 @@
+{
+  "name": "checkpoint-web-runner",
+  "private": true,
+  "scripts": {
+    "start:web": "node web-server.mjs"
+  }
+}

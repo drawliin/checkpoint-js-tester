@@ -33,6 +33,10 @@ Run extracted official tests locally for these JS exercises:
 - `js-transform-keys`
 - `js-trap-object`
 
+The project now also includes a small web UI that uses the same local test
+harness. You can edit code in the browser, click `Test`, and see the harness
+output directly in the page.
+
 ## Install
 
 Requirements:
@@ -47,6 +51,9 @@ cd tester
 npm install
 cd ..
 ```
+
+The web server itself uses only Node's built-in modules, so there is no extra
+root dependency install step.
 
 ## Run
 
@@ -80,3 +87,27 @@ If needed, the script still accepts optional extra arguments:
 
 - The harness and test files were extracted from the public image `ghcr.io/01-edu/module-js`.
 - `tester/test.mjs` includes a small Windows path fix so the harness also works outside Linux containers.
+
+## Web Version
+
+Start the web server from the project root:
+
+```sh
+npm run start:web
+```
+
+Then open:
+
+```txt
+http://localhost:3000
+```
+
+Current web support:
+
+- JavaScript only
+- exercise picker based on `tester/tests`
+- browser editor with starter code loading
+- `Test` button that runs the same Node harness and shows output in the page
+
+The structure is intentionally split so more languages can be added later
+through the shared exercise catalog and the run endpoint.

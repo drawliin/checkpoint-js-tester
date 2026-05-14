@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkpoint Web Tester</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">Checkpoint Runner</p>
+        <h1>Write JavaScript, run official tests, inspect output.</h1>
+        <p class="hero-copy">
+          The browser UI uses the same local harness as the terminal version.
+          JavaScript is active now, and the structure is ready for more
+          languages later.
+        </p>
+      </section>
+
+      <section class="workspace">
+        <div class="panel controls">
+          <div class="field">
+            <label for="language">Language</label>
+            <select id="language" disabled></select>
+          </div>
+          <div class="field">
+            <label for="exercise">Exercise</label>
+            <select id="exercise"></select>
+          </div>
+          <div class="actions">
+            <button id="reset" type="button" class="secondary">Reset</button>
+            <button id="run" type="button" class="primary">Test</button>
+          </div>
+        </div>
+
+        <div class="editor-output-grid">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="panel-title">Editor</p>
+                <p id="file-label" class="panel-subtitle">solution.js</p>
+              </div>
+              <span class="badge">JavaScript</span>
+            </div>
+            <div class="editor-frame">
+              <div id="line-numbers" class="line-numbers" aria-hidden="true"></div>
+              <textarea
+                id="editor"
+                spellcheck="false"
+                aria-label="Code editor"
+              ></textarea>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="panel-title">Output</p>
+                <p id="result-status" class="panel-subtitle">Waiting for a test run</p>
+              </div>
+              <span id="result-badge" class="badge neutral">Idle</span>
+            </div>
+            <pre id="output" class="output">Select an exercise, edit the code, then click Test.</pre>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
