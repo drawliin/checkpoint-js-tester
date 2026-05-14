@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-import { getExerciseCatalog } from "./exercise-catalog.mjs";
+import { getExerciseCatalog } from "./catalog.mjs";
 
 const PORT = Number(process.env.PORT || 3000);
 const ROOT_DIR = fileURLToPath(new URL(".", import.meta.url));

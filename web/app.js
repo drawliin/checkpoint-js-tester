@@ -99,6 +99,16 @@ const getAllSubmissions = () =>
     )
     .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
 
+const getCurrentExerciseSubmissions = () => {
+  if (!state.currentExerciseId) {
+    return [];
+  }
+
+  return getAllSubmissions().filter(
+    (submission) => submission.exerciseId === state.currentExerciseId,
+  );
+};
+
 const renderLineNumbers = () => {
   const totalLines = editor.value.split("\n").length;
   lineNumbers.textContent = Array.from(
@@ -203,12 +213,16 @@ const renderExerciseList = () => {
 };
 
 const renderSubmissions = () => {
-  const submissions = getAllSubmissions();
+  const submissions = getCurrentExerciseSubmissions();
   submissionCount.textContent = String(submissions.length);
+
+  const exercise = getExerciseById(state.currentExerciseId);
 
   if (submissions.length === 0) {
     submissionList.innerHTML =
-      '<div class="empty-state">Passing submissions will appear here after successful test runs.</div>';
+      exercise
+        ? `<div class="empty-state">No accepted submissions saved yet for ${exercise.label}.</div>`
+        : '<div class="empty-state">Select an exercise to see its accepted submissions.</div>';
     return;
   }
 
@@ -254,10 +268,11 @@ const loadExercise = (exerciseId) => {
   });
   renderLanguageFilters();
   renderExerciseList();
+  renderSubmissions();
 };
 
 const loadSubmission = (submissionIndex) => {
-  const submissions = getAllSubmissions();
+  const submissions = getCurrentExerciseSubmissions();
   const submission = submissions[submissionIndex];
   if (!submission) {
     return;
@@ -285,6 +300,7 @@ const loadSubmission = (submissionIndex) => {
   });
   renderLanguageFilters();
   renderExerciseList();
+  renderSubmissions();
 };
 
 const populateCatalog = (catalog) => {
@@ -413,6 +429,7 @@ languageFilters.addEventListener("click", (event) => {
       statusText: `${formatLanguage(state.selectedLanguage)} module is empty`,
       bodyText: "Switch back to a loaded module or wait for more exercises.",
     });
+    renderSubmissions();
   }
 });
 
