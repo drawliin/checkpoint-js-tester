@@ -19,11 +19,95 @@ const fileLabel = document.querySelector("#file-label");
 const problemTitle = document.querySelector("#problem-title");
 const problemMeta = document.querySelector("#problem-meta");
 const problemLanguage = document.querySelector("#problem-language");
-const editorBadge = document.querySelector("#editor-badge");
 const submissionList = document.querySelector("#submission-list");
 const submissionCount = document.querySelector("#submission-count");
+const subjectStatus = document.querySelector("#subject-status");
+const subjectBody = document.querySelector("#subject-body");
+const subjectLink = document.querySelector("#subject-link");
 
 const STORAGE_KEY = "checkpoint-passing-submissions";
+const SUBJECTS_BASE_URL = "https://github.com/01-edu/public/tree/master/subjects";
+const RAW_SUBJECTS_BASE_URL =
+  "https://raw.githubusercontent.com/01-edu/public/master/subjects";
+
+const EXERCISE_LEVELS = [
+  {
+    level: 1,
+    difficulty: 2,
+    exerciseIds: [
+      "js-factorial",
+      "js-fibonacci",
+      "js-even-sum",
+      "js-perfect-num",
+      "js-divisor-finder",
+    ],
+  },
+  {
+    level: 2,
+    difficulty: 4,
+    exerciseIds: [
+      "js-array-chunk-reversal",
+      "js-palindromic-chains",
+      "js-sentence-pyramid",
+      "js-grid-word-finder",
+      "js-nested-array-reverser",
+    ],
+  },
+  {
+    level: 3,
+    difficulty: 6,
+    exerciseIds: [
+      "js-insertion-sort-analyzer",
+      "js-bubble-sort-analyzer",
+      "js-snakepath-validator",
+      "js-grid-word-finder2",
+    ],
+  },
+  {
+    level: 4,
+    difficulty: 8,
+    exerciseIds: [
+      "js-object-lab",
+      "js-election-mix",
+      "js-flat-object",
+      "js-pipeline",
+    ],
+  },
+  {
+    level: 5,
+    difficulty: 10,
+    exerciseIds: [
+      "js-sleep-breaker",
+      "js-final-attempt",
+      "js-exam-grader",
+      "js-zoo-race",
+    ],
+  },
+  {
+    level: 6,
+    difficulty: 12,
+    exerciseIds: [
+      "js-deep-clone",
+      "js-deep-equal",
+      "js-deep-find",
+      "js-deep-freeze",
+    ],
+  },
+  {
+    level: 7,
+    difficulty: 14,
+    exerciseIds: [
+      "js-flatten-object",
+      "js-swappable-object",
+      "js-transform-keys",
+      "js-trap-object",
+    ],
+  },
+];
+
+const LEVEL_EXERCISE_IDS = new Set(
+  EXERCISE_LEVELS.flatMap((level) => level.exerciseIds),
+);
 
 let codeEditor = null;
 
@@ -86,6 +170,148 @@ const escapeHtml = (value) =>
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
+
+const renderInlineMarkdown = (value) =>
+  escapeHtml(value)
+    .replaceAll(/`([^`]+)`/g, "<code>$1</code>")
+    .replaceAll(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replaceAll(/\*([^*]+)\*/g, "<em>$1</em>")
+    .replaceAll(
+      /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+      '<a href="$2" target="_blank" rel="noreferrer">$1</a>',
+    );
+
+const renderSubjectMarkdown = (markdown) => {
+  const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+  const html = [];
+  let inCodeBlock = false;
+  let codeLines = [];
+  let listItems = [];
+  let paragraphLines = [];
+
+  const flushParagraph = () => {
+    if (paragraphLines.length === 0) {
+      return;
+    }
+
+    html.push(`<p>${renderInlineMarkdown(paragraphLines.join(" "))}</p>`);
+    paragraphLines = [];
+  };
+
+  const flushList = () => {
+    if (listItems.length === 0) {
+      return;
+    }
+
+    html.push(`<ul>${listItems.map((item) => `<li>${item}</li>`).join("")}</ul>`);
+    listItems = [];
+  };
+
+  for (const line of lines) {
+    if (line.trim().startsWith("```")) {
+      flushParagraph();
+      flushList();
+
+      if (inCodeBlock) {
+        html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+        codeLines = [];
+      }
+
+      inCodeBlock = !inCodeBlock;
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,4})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      const level = Math.min(heading[1].length + 1, 5);
+      html.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    const listItem = line.match(/^\s*[-*]\s+(.+)$/);
+    if (listItem) {
+      flushParagraph();
+      listItems.push(renderInlineMarkdown(listItem[1]));
+      continue;
+    }
+
+    if (line.trim() === "") {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    flushList();
+    paragraphLines.push(line.trim());
+  }
+
+  flushParagraph();
+  flushList();
+
+  if (inCodeBlock && codeLines.length > 0) {
+    html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+  }
+
+  return html.join("");
+};
+
+const getSubjectSlugs = (exerciseId) => {
+  const withoutLanguagePrefix = exerciseId.replace(/^js-/, "");
+  return [...new Set([withoutLanguagePrefix, exerciseId])];
+};
+
+const fetchSubjectReadme = async (exerciseId) => {
+  for (const slug of getSubjectSlugs(exerciseId)) {
+    const response = await fetch(`${RAW_SUBJECTS_BASE_URL}/${slug}/README.md`);
+    if (response.ok) {
+      return {
+        markdown: await response.text(),
+        slug,
+      };
+    }
+  }
+
+  throw Error("Subject README not found.");
+};
+
+const loadSubject = async (exercise) => {
+  const fallbackSlug = getSubjectSlugs(exercise.id)[0];
+  const requestId = exercise.id;
+
+  subjectStatus.textContent = `Loading ${exercise.label} subject...`;
+  subjectLink.href = `${SUBJECTS_BASE_URL}/${fallbackSlug}`;
+  subjectBody.innerHTML = '<div class="empty-state">Loading subject from 01 Edu...</div>';
+
+  try {
+    const { markdown, slug } = await fetchSubjectReadme(exercise.id);
+    if (state.currentExerciseId !== requestId) {
+      return;
+    }
+
+    subjectStatus.textContent = ``;
+    subjectLink.href = `${SUBJECTS_BASE_URL}/${slug}`;
+    subjectBody.innerHTML = renderSubjectMarkdown(markdown);
+  } catch (error) {
+    if (state.currentExerciseId !== requestId) {
+      return;
+    }
+
+    subjectStatus.textContent = "Subject unavailable";
+    subjectBody.innerHTML = `
+      <div class="empty-state">
+        ${escapeHtml(error instanceof Error ? error.message : String(error))}
+        Open the 01 Edu subjects repository to check the exercise manually.
+      </div>
+    `;
+  }
+};
 
 const formatLanguage = (languageId) =>
   state.catalog?.languages.find((language) => language.id === languageId)?.label ||
@@ -259,6 +485,16 @@ const renderLanguageFilters = () => {
     .join("");
 };
 
+const renderExerciseCard = (exercise) => `
+  <a class="exercise-card" href="#/exercise/${escapeHtml(exercise.id)}">
+    <span class="exercise-card-language">${escapeHtml(
+      formatLanguage(exercise.language),
+    )}</span>
+    <span class="exercise-card-title">${escapeHtml(exercise.id)}</span>
+    <span class="exercise-card-meta">${escapeHtml(exercise.label)}</span>
+  </a>
+`;
+
 const renderExerciseList = () => {
   const visibleExercises = getVisibleExercises();
   exerciseCount.textContent = String(visibleExercises.length);
@@ -273,21 +509,69 @@ const renderExerciseList = () => {
     return;
   }
 
-  exerciseList.innerHTML = visibleExercises
-    .map(
-      (exercise) => `
-        <a class="exercise-card" href="#/exercise/${escapeHtml(exercise.id)}">
-          <span class="exercise-card-language">${escapeHtml(
-            formatLanguage(exercise.language),
-          )}</span>
-          <span class="exercise-card-title">${escapeHtml(exercise.label)}</span>
-          <span class="exercise-card-meta">${escapeHtml(
-            `${exercise.functionName}(${exercise.parameterNames.join(", ")})`,
-          )}</span>
-        </a>
-      `,
-    )
-    .join("");
+  if (state.selectedLanguage !== "javascript") {
+    exerciseList.innerHTML = visibleExercises.map(renderExerciseCard).join("");
+    return;
+  }
+
+  const exerciseMap = new Map(visibleExercises.map((exercise) => [exercise.id, exercise]));
+  const renderedExerciseIds = new Set();
+
+  const levelSections = EXERCISE_LEVELS.map((level) => {
+    const levelExercises = level.exerciseIds
+      .map((exerciseId) => exerciseMap.get(exerciseId))
+      .filter(Boolean);
+
+    if (levelExercises.length === 0) {
+      return "";
+    }
+
+    levelExercises.forEach((exercise) => renderedExerciseIds.add(exercise.id));
+
+    return `
+      <section class="level-section">
+        <div class="level-header">
+          <div>
+            <h2>Level ${level.level}</h2>
+          </div>
+        </div>
+        <div class="level-grid">
+          ${levelExercises.map(renderExerciseCard).join("")}
+        </div>
+      </section>
+    `;
+  }).join("");
+
+  const otherExercises = visibleExercises.filter(
+    (exercise) =>
+      !renderedExerciseIds.has(exercise.id) && !LEVEL_EXERCISE_IDS.has(exercise.id),
+  );
+
+  const otherSection =
+    otherExercises.length > 0
+      ? `
+        <section class="level-section">
+          <div class="level-header">
+            <div>
+              <h2>Other exercises</h2>
+              <p>${otherExercises.length} exercises</p>
+            </div>
+          </div>
+          <div class="level-grid">
+            ${otherExercises.map(renderExerciseCard).join("")}
+          </div>
+        </section>
+      `
+      : "";
+
+  exerciseList.innerHTML = `
+    <div class="level-list-heading">
+      <p class="eyebrow">Exercises by Level</p>
+      <h2>Exercises by Level</h2>
+    </div>
+    ${levelSections}
+    ${otherSection}
+  `;
 };
 
 const renderSubmissions = () => {
@@ -357,10 +641,7 @@ const loadExercise = (exerciseId) => {
   fileLabel.textContent = exercise.filename;
   problemTitle.textContent = exercise.label;
   problemLanguage.textContent = formatLanguage(exercise.language);
-  problemMeta.textContent = `${exercise.functionName}(${exercise.parameterNames.join(
-    ", ",
-  )})`;
-  editorBadge.textContent = formatLanguage(exercise.language);
+  problemMeta.textContent = ``;
   setResult({
     badgeText: "Idle",
     badgeClass: "neutral",
@@ -372,6 +653,7 @@ const loadExercise = (exerciseId) => {
   renderSubmissions();
   showEditorView(exercise);
   setEditorCode(exercise.starterCode);
+  loadSubject(exercise);
 };
 
 const loadSubmission = (submissionIndex) => {
@@ -391,7 +673,6 @@ const loadSubmission = (submissionIndex) => {
       ", ",
     )})`;
     fileLabel.textContent = exercise.filename;
-    editorBadge.textContent = formatLanguage(exercise.language);
   }
 
   setEditorCode(submission.code);

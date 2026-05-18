@@ -56,41 +56,63 @@
           </div>
         </header>
 
-        <section class="editor-shell panel">
+        <section class="subject-panel panel">
           <div class="panel-header">
             <div>
-              <p class="panel-title">Editor</p>
-              <p id="file-label" class="panel-subtitle">solution.js</p>
+              <p class="panel-title">Subject</p>
+              <p id="subject-status" class="panel-subtitle">Loading exercise subject...</p>
             </div>
-            <span id="editor-badge" class="badge">JavaScript</span>
+            <a
+              id="subject-link"
+              class="subject-link"
+              href="https://github.com/01-edu/public/tree/master/subjects"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open README
+            </a>
           </div>
-          <div id="editor" class="code-editor" aria-label="Code editor"></div>
+          <article id="subject-body" class="subject-body">
+            <div class="empty-state">Select an exercise to load its subject.</div>
+          </article>
         </section>
 
-        <section class="bottom-grid">
-          <article class="panel output-panel">
+        <section class="workbench-layout">
+          <section class="editor-shell panel">
             <div class="panel-header">
               <div>
-                <p class="panel-title">Testing</p>
-                <p id="result-status" class="panel-subtitle">
-                  Waiting for a test run
-                </p>
+                <p class="panel-title">Editor</p>
+                <p id="file-label" class="panel-subtitle">solution.js</p>
               </div>
-              <span id="result-badge" class="badge neutral">Idle</span>
             </div>
-            <pre id="output" class="output">Choose an exercise, edit the code, then click Test.</pre>
-          </article>
+            <div id="editor" class="code-editor" aria-label="Code editor"></div>
+          </section>
 
-          <article class="panel history-panel">
-            <div class="panel-header">
-              <div>
-                <p class="panel-title">Past Submissions</p>
-                <p class="panel-subtitle">Accepted runs saved in this browser.</p>
+          <aside class="result-stack">
+            <article class="panel output-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="panel-title">Testing</p>
+                  <p id="result-status" class="panel-subtitle">
+                    Waiting for a test run
+                  </p>
+                </div>
+                <span id="result-badge" class="badge neutral">Idle</span>
               </div>
-              <span id="submission-count" class="count-pill">0</span>
-            </div>
-            <div id="submission-list" class="submission-list"></div>
-          </article>
+              <pre id="output" class="output">Choose an exercise, edit the code, then click Test.</pre>
+            </article>
+
+            <article class="panel history-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="panel-title">Past Submissions</p>
+                  <p class="panel-subtitle">Accepted runs saved in this browser.</p>
+                </div>
+                <span id="submission-count" class="count-pill">0</span>
+              </div>
+              <div id="submission-list" class="submission-list"></div>
+            </article>
+          </aside>
         </section>
       </section>
     </main>
