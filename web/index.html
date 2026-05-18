@@ -8,62 +8,90 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="hero">
-        <p class="eyebrow">Checkpoint Runner</p>
-        <h1>Write JavaScript, run official tests, inspect output.</h1>
-        <p class="hero-copy">
-          The browser UI uses the same local harness as the terminal version.
-          JavaScript is active now, and the structure is ready for more
-          languages later.
-        </p>
+      <section id="exercise-view" class="view">
+        <header class="topbar home-topbar">
+          <div>
+            <p class="eyebrow">Checkpoint Workspace</p>
+            <h1>Choose an exercise.</h1>
+            <p class="topbar-subtitle">
+              Pick a challenge from the catalog, then move into a focused code
+              editor for your solution.
+            </p>
+          </div>
+        </header>
+
+        <section class="catalog-tools panel">
+          <div>
+            <label for="exercise-search" class="field-label">Search</label>
+            <input
+              id="exercise-search"
+              class="text-input"
+              type="search"
+              placeholder="Find an exercise"
+            />
+          </div>
+          <div>
+            <p class="field-label">Language</p>
+            <div id="language-filters" class="language-filters"></div>
+          </div>
+          <span class="count-pill"><span id="exercise-count">0</span> exercises</span>
+        </section>
+
+        <section id="exercise-list" class="exercise-grid"></section>
       </section>
 
-      <section class="workspace">
-        <div class="panel controls">
-          <div class="field">
-            <label for="language">Language</label>
-            <select id="language" disabled></select>
+      <section id="editor-view" class="view editor-view" hidden>
+        <header class="editor-topbar">
+          <a class="back-link" href="#/">All exercises</a>
+          <div class="editor-title">
+            <p id="problem-language" class="eyebrow">JavaScript</p>
+            <h1 id="problem-title">Select an exercise</h1>
+            <p id="problem-meta" class="panel-subtitle">
+              Choose an exercise from the catalog.
+            </p>
           </div>
-          <div class="field">
-            <label for="exercise">Exercise</label>
-            <select id="exercise"></select>
-          </div>
-          <div class="actions">
+          <div class="problem-actions">
             <button id="reset" type="button" class="secondary">Reset</button>
             <button id="run" type="button" class="primary">Test</button>
           </div>
-        </div>
+        </header>
 
-        <div class="editor-output-grid">
-          <section class="panel">
+        <section class="editor-shell panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-title">Editor</p>
+              <p id="file-label" class="panel-subtitle">solution.js</p>
+            </div>
+            <span id="editor-badge" class="badge">JavaScript</span>
+          </div>
+          <div id="editor" class="code-editor" aria-label="Code editor"></div>
+        </section>
+
+        <section class="bottom-grid">
+          <article class="panel output-panel">
             <div class="panel-header">
               <div>
-                <p class="panel-title">Editor</p>
-                <p id="file-label" class="panel-subtitle">solution.js</p>
-              </div>
-              <span class="badge">JavaScript</span>
-            </div>
-            <div class="editor-frame">
-              <div id="line-numbers" class="line-numbers" aria-hidden="true"></div>
-              <textarea
-                id="editor"
-                spellcheck="false"
-                aria-label="Code editor"
-              ></textarea>
-            </div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-header">
-              <div>
-                <p class="panel-title">Output</p>
-                <p id="result-status" class="panel-subtitle">Waiting for a test run</p>
+                <p class="panel-title">Testing</p>
+                <p id="result-status" class="panel-subtitle">
+                  Waiting for a test run
+                </p>
               </div>
               <span id="result-badge" class="badge neutral">Idle</span>
             </div>
-            <pre id="output" class="output">Select an exercise, edit the code, then click Test.</pre>
-          </section>
-        </div>
+            <pre id="output" class="output">Choose an exercise, edit the code, then click Test.</pre>
+          </article>
+
+          <article class="panel history-panel">
+            <div class="panel-header">
+              <div>
+                <p class="panel-title">Past Submissions</p>
+                <p class="panel-subtitle">Accepted runs saved in this browser.</p>
+              </div>
+              <span id="submission-count" class="count-pill">0</span>
+            </div>
+            <div id="submission-list" class="submission-list"></div>
+          </article>
+        </section>
       </section>
     </main>
 
