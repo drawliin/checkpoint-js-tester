@@ -1,9 +1,15 @@
+import ace from "https://esm.sh/ace-builds@1.36.5/src-noconflict/ace";
+import "https://esm.sh/ace-builds@1.36.5/src-noconflict/mode-javascript";
+import "https://esm.sh/ace-builds@1.36.5/src-noconflict/theme-monokai";
+import "https://esm.sh/ace-builds@1.36.5/src-noconflict/ext-language_tools";
+
+const exerciseView = document.querySelector("#exercise-view");
+const editorViewPanel = document.querySelector("#editor-view");
 const languageFilters = document.querySelector("#language-filters");
 const exerciseSearch = document.querySelector("#exercise-search");
 const exerciseList = document.querySelector("#exercise-list");
 const exerciseCount = document.querySelector("#exercise-count");
-const editor = document.querySelector("#editor");
-const lineNumbers = document.querySelector("#line-numbers");
+const editorMount = document.querySelector("#editor");
 const runButton = document.querySelector("#run");
 const resetButton = document.querySelector("#reset");
 const output = document.querySelector("#output");
@@ -19,6 +25,54 @@ const submissionCount = document.querySelector("#submission-count");
 
 const STORAGE_KEY = "checkpoint-passing-submissions";
 
+let codeEditor = null;
+
+const layoutEditor = () => {
+  if (!codeEditor || editorViewPanel.hidden) {
+    return;
+  }
+
+  codeEditor.resize(true);
+};
+
+export const initializeEditor = () => {
+  if (codeEditor) {
+    return codeEditor;
+  }
+
+  codeEditor = ace.edit(editorMount, {
+    mode: "ace/mode/javascript",
+    theme: "ace/theme/monokai",
+    fontSize: 14,
+    fontFamily: 'Consolas, "Courier New", monospace',
+    tabSize: 2,
+    useSoftTabs: true,
+    wrap: false,
+    showPrintMargin: false,
+    highlightActiveLine: true,
+    highlightSelectedWord: true,
+    animatedScroll: true,
+    scrollPastEnd: 0.12,
+    cursorStyle: "slim",
+    behavioursEnabled: true,
+    enableBasicAutocompletion: true,
+    enableLiveAutocompletion: true,
+    enableSnippets: true,
+    fixedWidthGutter: true,
+  });
+
+  codeEditor.session.setUseWorker(false);
+  codeEditor.session.setNewLineMode("unix");
+  codeEditor.renderer.setScrollMargin(12, 18, 0, 0);
+  codeEditor.renderer.setPadding(12);
+  codeEditor.renderer.setShowGutter(true);
+  codeEditor.setOption("mergeUndoDeltas", "always");
+
+  new ResizeObserver(layoutEditor).observe(editorMount);
+
+  return codeEditor;
+};
+
 const state = {
   catalog: null,
   currentExerciseId: null,
@@ -26,7 +80,15 @@ const state = {
   searchTerm: "",
 };
 
+const escapeHtml = (value) =>
+  String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
 const formatLanguage = (languageId) =>
+  state.catalog?.languages.find((language) => language.id === languageId)?.label ||
   languageId.charAt(0).toUpperCase() + languageId.slice(1);
 
 const formatDate = (isoString) => {
@@ -42,6 +104,18 @@ const formatDate = (isoString) => {
     minute: "2-digit",
   });
 };
+
+const setEditorCode = (code) => {
+  const editor = initializeEditor();
+  editor.setValue(code, -1);
+  editor.clearSelection();
+  editor.moveCursorTo(0, 0);
+  editor.renderer.scrollToX(0);
+  editor.renderer.scrollToY(0);
+  layoutEditor();
+};
+
+const getEditorCode = () => initializeEditor().getValue();
 
 const readStoredSubmissions = () => {
   try {
@@ -61,19 +135,24 @@ const normalizeSubmission = (submission, exerciseMap) => {
       exercise?.label ||
       submission.exerciseId ||
       "Saved submission",
-    language:
-      submission.language ||
-      exercise?.language ||
-      "javascript",
+    language: submission.language || exercise?.language || "javascript",
     code: submission.code || "",
     output: submission.output || "",
     savedAt: submission.savedAt || new Date(0).toISOString(),
   };
 };
 
-const savePassingSubmission = ({ exerciseId, exerciseLabel, language, code, output: resultOutput }) => {
+const savePassingSubmission = ({
+  exerciseId,
+  exerciseLabel,
+  language,
+  code,
+  output: resultOutput,
+}) => {
   const submissions = readStoredSubmissions();
-  const history = Array.isArray(submissions[exerciseId]) ? submissions[exerciseId] : [];
+  const history = Array.isArray(submissions[exerciseId])
+    ? submissions[exerciseId]
+    : [];
 
   history.unshift({
     code,
@@ -94,7 +173,12 @@ const getAllSubmissions = () =>
     .map((submission) =>
       normalizeSubmission(
         submission,
-        new Map((state.catalog?.exercises || []).map((exercise) => [exercise.id, exercise])),
+        new Map(
+          (state.catalog?.exercises || []).map((exercise) => [
+            exercise.id,
+            exercise,
+          ]),
+        ),
       ),
     )
     .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
@@ -109,27 +193,19 @@ const getCurrentExerciseSubmissions = () => {
   );
 };
 
-const renderLineNumbers = () => {
-  const totalLines = editor.value.split("\n").length;
-  lineNumbers.textContent = Array.from(
-    { length: Math.max(totalLines, 1) },
-    (_, index) => String(index + 1),
-  ).join("\n");
-};
-
-const syncScroll = () => {
-  lineNumbers.scrollTop = editor.scrollTop;
-};
-
 const setResult = ({ badgeText, badgeClass, statusText, bodyText }) => {
   resultBadge.className = `badge ${badgeClass}`;
   resultBadge.textContent = badgeText;
   resultStatus.textContent = statusText;
   output.textContent = bodyText;
-  const regex = /^.+ passed \(\d+ tests\)$/;
-  let cssClass = regex.test(bodyText) ? "passed": "failed";
+
+  const passed = /^.+ passed \(\d+ tests\)$/.test(bodyText);
   output.className = "output";
-  output.classList.add(cssClass);
+  if (passed) {
+    output.classList.add("passed");
+  } else if (badgeClass === "error") {
+    output.classList.add("failed");
+  }
 };
 
 const getExerciseById = (exerciseId) =>
@@ -147,7 +223,8 @@ const getVisibleExercises = () => {
     const matchesSearch =
       normalizedSearch === "" ||
       exercise.label.toLowerCase().includes(normalizedSearch) ||
-      exercise.id.toLowerCase().includes(normalizedSearch);
+      exercise.id.toLowerCase().includes(normalizedSearch) ||
+      exercise.functionName.toLowerCase().includes(normalizedSearch);
 
     return matchesLanguage && matchesSearch;
   });
@@ -173,9 +250,9 @@ const renderLanguageFilters = () => {
         <button
           type="button"
           class="${classes}"
-          data-language-id="${language.id}"
+          data-language-id="${escapeHtml(language.id)}"
         >
-          ${language.label}
+          ${escapeHtml(language.label)}
         </button>
       `;
     })
@@ -189,26 +266,27 @@ const renderExerciseList = () => {
   if (visibleExercises.length === 0) {
     exerciseList.innerHTML =
       state.selectedLanguage === "javascript"
-        ? `<div class="empty-state">No exercises match the current search.</div>`
-        : `<div class="empty-state">${formatLanguage(
-            state.selectedLanguage,
+        ? '<div class="empty-state">No exercises match the current search.</div>'
+        : `<div class="empty-state">${escapeHtml(
+            formatLanguage(state.selectedLanguage),
           )} exercises are not loaded yet.</div>`;
     return;
   }
 
   exerciseList.innerHTML = visibleExercises
-    .map((exercise) => {
-      const isActive = exercise.id === state.currentExerciseId;
-      return `
-        <button
-          type="button"
-          class="exercise-item ${isActive ? "active" : ""}"
-          data-exercise-id="${exercise.id}"
-        >
-          <span class="exercise-item-name">${exercise.label}</span>
-        </button>
-      `;
-    })
+    .map(
+      (exercise) => `
+        <a class="exercise-card" href="#/exercise/${escapeHtml(exercise.id)}">
+          <span class="exercise-card-language">${escapeHtml(
+            formatLanguage(exercise.language),
+          )}</span>
+          <span class="exercise-card-title">${escapeHtml(exercise.label)}</span>
+          <span class="exercise-card-meta">${escapeHtml(
+            `${exercise.functionName}(${exercise.parameterNames.join(", ")})`,
+          )}</span>
+        </a>
+      `,
+    )
     .join("");
 };
 
@@ -219,10 +297,11 @@ const renderSubmissions = () => {
   const exercise = getExerciseById(state.currentExerciseId);
 
   if (submissions.length === 0) {
-    submissionList.innerHTML =
-      exercise
-        ? `<div class="empty-state">No accepted submissions saved yet for ${exercise.label}.</div>`
-        : '<div class="empty-state">Select an exercise to see its accepted submissions.</div>';
+    submissionList.innerHTML = exercise
+      ? `<div class="empty-state">No accepted submissions saved yet for ${escapeHtml(
+          exercise.label,
+        )}.</div>`
+      : '<div class="empty-state">Select an exercise to see its accepted submissions.</div>';
     return;
   }
 
@@ -234,9 +313,13 @@ const renderSubmissions = () => {
           class="submission-item"
           data-submission-index="${index}"
         >
-          <span class="submission-item-title">${submission.exerciseLabel}</span>
-          <span class="submission-item-meta">${formatLanguage(submission.language)} • ${formatDate(
-            submission.savedAt,
+          <span class="submission-item-title">${escapeHtml(
+            submission.exerciseLabel,
+          )}</span>
+          <span class="submission-item-meta">${escapeHtml(
+            `${formatLanguage(submission.language)} - ${formatDate(
+              submission.savedAt,
+            )}`,
           )}</span>
         </button>
       `,
@@ -244,9 +327,28 @@ const renderSubmissions = () => {
     .join("");
 };
 
+const showCatalogView = () => {
+  exerciseView.hidden = false;
+  editorViewPanel.hidden = true;
+  document.title = "Checkpoint Web Tester";
+};
+
+const showEditorView = (exercise) => {
+  exerciseView.hidden = true;
+  editorViewPanel.hidden = false;
+  document.title = `${exercise.label} - Checkpoint Web Tester`;
+
+  requestAnimationFrame(() => {
+    const editor = initializeEditor();
+    layoutEditor();
+    editor.focus();
+  });
+};
+
 const loadExercise = (exerciseId) => {
   const exercise = getExerciseById(exerciseId);
   if (!exercise) {
+    showCatalogView();
     return;
   }
 
@@ -255,11 +357,10 @@ const loadExercise = (exerciseId) => {
   fileLabel.textContent = exercise.filename;
   problemTitle.textContent = exercise.label;
   problemLanguage.textContent = formatLanguage(exercise.language);
-  problemMeta.textContent = `${exercise.functionName}(${exercise.parameterNames.join(", ")})`;
+  problemMeta.textContent = `${exercise.functionName}(${exercise.parameterNames.join(
+    ", ",
+  )})`;
   editorBadge.textContent = formatLanguage(exercise.language);
-  editor.value = exercise.starterCode;
-  renderLineNumbers();
-  syncScroll();
   setResult({
     badgeText: "Idle",
     badgeClass: "neutral",
@@ -269,6 +370,8 @@ const loadExercise = (exerciseId) => {
   renderLanguageFilters();
   renderExerciseList();
   renderSubmissions();
+  showEditorView(exercise);
+  setEditorCode(exercise.starterCode);
 };
 
 const loadSubmission = (submissionIndex) => {
@@ -284,18 +387,20 @@ const loadSubmission = (submissionIndex) => {
     state.selectedLanguage = exercise.language;
     problemTitle.textContent = exercise.label;
     problemLanguage.textContent = formatLanguage(exercise.language);
-    problemMeta.textContent = `${exercise.functionName}(${exercise.parameterNames.join(", ")})`;
+    problemMeta.textContent = `${exercise.functionName}(${exercise.parameterNames.join(
+      ", ",
+    )})`;
     fileLabel.textContent = exercise.filename;
     editorBadge.textContent = formatLanguage(exercise.language);
   }
 
-  editor.value = submission.code;
-  renderLineNumbers();
-  syncScroll();
+  setEditorCode(submission.code);
   setResult({
     badgeText: "Saved",
     badgeClass: "neutral",
-    statusText: `${submission.exerciseLabel} accepted on ${formatDate(submission.savedAt)}`,
+    statusText: `${submission.exerciseLabel} accepted on ${formatDate(
+      submission.savedAt,
+    )}`,
     bodyText: submission.output || "No saved output.",
   });
   renderLanguageFilters();
@@ -303,15 +408,26 @@ const loadSubmission = (submissionIndex) => {
   renderSubmissions();
 };
 
+const renderRoute = () => {
+  if (!state.catalog) {
+    return;
+  }
+
+  const match = window.location.hash.match(/^#\/exercise\/([^/]+)$/);
+  if (match) {
+    loadExercise(decodeURIComponent(match[1]));
+    return;
+  }
+
+  state.currentExerciseId = null;
+  renderLanguageFilters();
+  renderExerciseList();
+  showCatalogView();
+};
+
 const populateCatalog = (catalog) => {
   state.catalog = catalog;
-  renderLanguageFilters();
-  renderSubmissions();
-
-  const firstJavascriptExercise = catalog.exercises.find(
-    (exercise) => exercise.language === "javascript",
-  );
-  loadExercise(firstJavascriptExercise?.id || catalog.exercises[0]?.id);
+  renderRoute();
 };
 
 const fetchCatalog = async () => {
@@ -340,6 +456,7 @@ const runTests = async () => {
   });
 
   try {
+    const code = getEditorCode();
     const response = await fetch("/api/run", {
       method: "POST",
       headers: {
@@ -348,7 +465,7 @@ const runTests = async () => {
       body: JSON.stringify({
         language: exercise.language,
         exerciseId: exercise.id,
-        code: editor.value,
+        code,
       }),
     });
 
@@ -362,7 +479,7 @@ const runTests = async () => {
         exerciseId: exercise.id,
         exerciseLabel: exercise.label,
         language: exercise.language,
-        code: editor.value,
+        code,
         output: result.output || "",
       });
       renderSubmissions();
@@ -393,8 +510,6 @@ const runTests = async () => {
   }
 };
 
-editor.addEventListener("input", renderLineNumbers);
-editor.addEventListener("scroll", syncScroll);
 exerciseSearch.addEventListener("input", (event) => {
   state.searchTerm = event.target.value;
   renderExerciseList();
@@ -409,37 +524,6 @@ languageFilters.addEventListener("click", (event) => {
   state.selectedLanguage = button.dataset.languageId;
   renderLanguageFilters();
   renderExerciseList();
-
-  const visibleExercises = getVisibleExercises();
-  if (visibleExercises.length > 0) {
-    loadExercise(visibleExercises[0].id);
-  } else {
-    state.currentExerciseId = null;
-    problemTitle.textContent = `${formatLanguage(state.selectedLanguage)} Module`;
-    problemLanguage.textContent = formatLanguage(state.selectedLanguage);
-    problemMeta.textContent = "No exercise selected";
-    fileLabel.textContent = `${state.selectedLanguage}.txt`;
-    editorBadge.textContent = formatLanguage(state.selectedLanguage);
-    editor.value = "";
-    renderLineNumbers();
-    syncScroll();
-    setResult({
-      badgeText: "Idle",
-      badgeClass: "neutral",
-      statusText: `${formatLanguage(state.selectedLanguage)} module is empty`,
-      bodyText: "Switch back to a loaded module or wait for more exercises.",
-    });
-    renderSubmissions();
-  }
-});
-
-exerciseList.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-exercise-id]");
-  if (!button) {
-    return;
-  }
-
-  loadExercise(button.dataset.exerciseId);
 });
 
 submissionList.addEventListener("click", (event) => {
@@ -457,10 +541,12 @@ resetButton.addEventListener("click", () => {
     loadExercise(state.currentExerciseId);
   }
 });
+window.addEventListener("hashchange", renderRoute);
 
 fetchCatalog()
   .then(populateCatalog)
   .catch((error) => {
+    showEditorView({ label: "Catalog error" });
     setResult({
       badgeText: "Error",
       badgeClass: "error",
