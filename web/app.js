@@ -264,7 +264,7 @@ const renderSubjectMarkdown = (markdown) => {
 
 const getSubjectSlugs = (exerciseId) => {
   const withoutLanguagePrefix = exerciseId.replace(/^js-/, "");
-  return [...new Set([withoutLanguagePrefix, exerciseId])];
+  return [...new Set([exerciseId, withoutLanguagePrefix])];
 };
 
 const fetchSubjectReadme = async (exerciseId) => {
