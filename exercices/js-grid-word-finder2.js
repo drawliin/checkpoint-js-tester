@@ -5,8 +5,9 @@ function gridWordFinder2(grid, word) {
 
     const horizontal = grid
         .map((row, y) => {
-            if (row.join("") === word) {
-                return { x: 0, y: y, direction: "horizontal" };
+            if (row.join("").includes(word)) {
+                let axisX = row.join("").indexOf(word);
+                return { x: axisX, y: y, direction: "horizontal" };
             }
         })
         .filter(Boolean);
@@ -17,8 +18,9 @@ function gridWordFinder2(grid, word) {
 
     const vertical = transposedGrid
         .map((row, y) => {
-            if (row.join("") === word) {
-                return { x: y, y: 0, direction: "vertical" };
+            if (row.join("").includes(word)) {
+                let axisY = row.join("").indexOf(word);
+                return { x: y, y: axisY, direction: "vertical" };
             }
         })
         .filter(Boolean);
